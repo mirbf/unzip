@@ -267,7 +267,7 @@ func (d *defaultFormatDetector) isTarFormat(data []byte) bool {
 		return false
 	}
 
-	// TAR文件的标识符在偏移257处
+	// 首先检查POSIX TAR格式(ustar)
 	ustarSignature := []byte("ustar")
 	if len(data) >= 262 && bytes.Equal(data[257:262], ustarSignature) {
 		// 验证校验和
@@ -279,7 +279,12 @@ func (d *defaultFormatDetector) isTarFormat(data []byte) bool {
 		return d.validateTarChecksum(data)
 	}
 
-	return false
+	// 检查传统TAR格式（无ustar标识）
+	// 传统TAR格式特征：
+	// 1. 校验和字段不为空
+	// 2. 文件模式字段符合八进制格式
+	// 3. 校验和计算正确
+	return d.validateTraditionalTarFormat(data)
 }
 
 // isGzipFormat 检测是否为GZIP格式
@@ -343,6 +348,37 @@ func (d *defaultFormatDetector) validateTarChecksum(data []byte) bool {
 	}
 
 	return sum == storedChecksum
+}
+
+// validateTraditionalTarFormat 验证传统TAR格式
+func (d *defaultFormatDetector) validateTraditionalTarFormat(data []byte) bool {
+	if len(data) < 512 {
+		return false
+	}
+	
+	// 检查文件名字段（0-99）是否包含合理的内容
+	filename := string(data[0:100])
+	if len(strings.TrimRight(filename, "\x00")) == 0 {
+		return false // 文件名为空
+	}
+	
+	// 检查文件模式字段（100-107）是否为八进制
+	modeStr := strings.TrimRight(string(data[100:108]), "\x00 ")
+	if len(modeStr) == 0 {
+		return false
+	}
+	if _, err := parseOctal(modeStr); err != nil {
+		return false // 文件模式不是有效的八进制
+	}
+	
+	// 检查校验和字段（148-155）是否非空且为八进制
+	checksumStr := strings.TrimRight(string(data[148:156]), "\x00 ")
+	if len(checksumStr) == 0 {
+		return false
+	}
+	
+	// 验证校验和计算
+	return d.validateTarChecksum(data)
 }
 
 // parseOctal 解析八进制字符串
