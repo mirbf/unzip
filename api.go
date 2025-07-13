@@ -86,10 +86,10 @@ func Extract(archivePath string, options *ExtractOptions) (*ExtractResult, error
 	
 	// 设置默认值
 	if options.MaxDepth == 0 {
-		options.MaxDepth = 5
+		options.MaxDepth = 10
 	}
 	if options.MaxFileSize == 0 {
-		options.MaxFileSize = 10 * 1024 * 1024 * 1024 // 10GB
+		options.MaxFileSize = 500 * 1024 * 1024 // 500MB
 	}
 	if options.Timeout == 0 {
 		options.Timeout = 30 * time.Minute
@@ -104,9 +104,9 @@ func Extract(archivePath string, options *ExtractOptions) (*ExtractResult, error
 		MaxDepth:          options.MaxDepth,
 		MaxFileSize:       options.MaxFileSize,
 		Timeout:           options.Timeout,
-		OverwriteExisting: options.Overwrite,
-		AutoRename:        options.AutoRename,    // 直接使用用户设置，默认false
-		CleanNested:       options.CleanNested,   // 传递清理选项，默认true
+		OverwriteExisting: false,                 // 默认为false
+		AutoRename:        true,                  // 默认为true，在重名时重命名
+		CleanNested:       true,                  // 默认为true
 		PreservePath:      true,
 		SkipHidden:        false,
 	}
